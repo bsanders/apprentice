@@ -21,6 +21,25 @@ def csv_to_json(filename):
     with open(basename + ".json", 'w') as outputfile:
         outputfile.write(json_data)
 
+
+def db_retrieve_spell(spell_id):
+    '''
+    :param spell_id: a string representing the database ID of the spell
+    :return: a dictionary representing that spell, or None
+    '''
+    # list of dictionaries
+    QUASI_DB = json.load(open('spells.json'))
+
+    # loop through the "db" until we find the spell entry that matches the id to lookup
+    for entry in QUASI_DB:
+        if entry['id'] == spell_id:
+            # if we found a match, no need to continue
+            break
+    else:
+        # note this unique syntax.  'else' really should have been called 'nobreak' here...
+        return None
+    return entry
+
 # if the json data file doesn't exist, but the csv does, create it.
 if not os.path.exists('spells.json'):
     if os.path.exists('spells.csv'):
@@ -32,12 +51,16 @@ if not os.path.exists('spells.json'):
 # Check if the user passed an argument or not.
 # sys.argv is a list of strings representing command-line arguments
 if len(sys.argv) > 1:
-    # list of dictionaries
-    QUASI_DB = json.load(open('spells.json'))
-
-    spell_id = int(sys.argv[1])
-    spell = QUASI_DB[spell_id]
+    spell_id = sys.argv[1]
+    spell = db_retrieve_spell(spell_id)
+    # look at this.  'None' is 'falsey'
     print type(spell)
-    print spell['name'], ": ", spell['short_description']
+    if spell:
+        print spell['name'], ": ", spell['short_description']
+        sys.exit(0)
+    else:
+        print "Spell not found with id {0}".format(spell_id)
+        sys.exit(1)
 else:
     print "Usage: {0} <id number in the database to lookup>".format(sys.argv[0])
+    sys.exit(1)
