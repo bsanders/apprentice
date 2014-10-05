@@ -1,5 +1,8 @@
 #! /usr/bin/python
 
+# this script is meant to quickly demonstrate some Python syntax.
+# It works best when it's copied one chunk at a time into the Python interpreter
+
 # Assignment is easy:
 x = 7
 y = 3
