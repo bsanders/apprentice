@@ -6,6 +6,12 @@ import sys
 import csv
 import json
 
+from flask import Flask, jsonify, abort
+
+# We're creating a flask object from this script
+# don't worry, its just boilerplate
+app = Flask(__name__)
+
 def csv_to_json(filename):
     '''
     :param filename: a string representing the filename of the csv file
@@ -32,6 +38,8 @@ def db_retrieve_spell(spell_id):
 
     # loop through the "db" until we find the spell entry that matches the id to lookup
     for entry in QUASI_DB:
+        # print the name of each spell as we search.
+        print entry['name']
         if entry['id'] == spell_id:
             # if we found a match, no need to continue
             break
@@ -40,27 +48,33 @@ def db_retrieve_spell(spell_id):
         return None
     return entry
 
-# if the json data file doesn't exist, but the csv does, create it.
-if not os.path.exists('spells.json'):
-    if os.path.exists('spells.csv'):
-        csv_to_json('spells.csv')
-    else:
-        sys.exit(1)
+
+# This is a 'decorator'. A decorator is an object that takes a function as an argument
+# and returns a new, modified, function
+# This decorator 'route' is provided by flask.
+@app.route('/spells/api/v1.0/spells/<string:spell_id>', methods = ['GET'])
+def get_spells(spell_id):
+    '''
+    :param spell_id: a string representing the database ID of the spell
+    :return: An http response with that spell's name and description, or a 404 Page
+    '''
+    spell_dict = db_retrieve_spell(spell_id)
+    if not spell_dict:
+        # The beloved 404 Not Found error...
+        abort(404)
+    # jsonify takes in a dictionary, and returns a JSON document bundled in an HTTP response
+    return jsonify({
+        'name': spell_dict['name'],
+        'short_description': spell_dict['short_description']})
 
 
-# Check if the user passed an argument or not.
-# sys.argv is a list of strings representing command-line arguments
-if len(sys.argv) > 1:
-    spell_id = sys.argv[1]
-    spell = db_retrieve_spell(spell_id)
-    # look at this.  'None' is 'falsey'
-    print type(spell)
-    if spell:
-        print spell['name'], ": ", spell['short_description']
-        sys.exit(0)
-    else:
-        print "Spell not found with id {0}".format(spell_id)
-        sys.exit(1)
-else:
-    print "Usage: {0} <id number in the database to lookup>".format(sys.argv[0])
-    sys.exit(1)
+# Since we're starting the script from the command line, we need this line, too.
+if __name__ == '__main__':
+    # if the json data file doesn't exist, but the csv does, create it.
+    if not os.path.exists('spells.json'):
+        if os.path.exists('spells.csv'):
+            csv_to_json('spells.csv')
+        else:
+            sys.exit(1)
+
+    app.run(debug = True)
