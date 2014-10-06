@@ -54,11 +54,18 @@ def db_retrieve_spell(spell_id):
     # simulate a long database lookup
     time.sleep(5)
 
+    spell_id = spell_id.lower().strip()
+    # Determine if the user is doing a lookup by id number or spell name
+    if spell_id.isdigit():
+        key = "id"
+    else:
+        key = "name"
+
     # loop through the "db" until we find the spell entry that matches the id to lookup
     for entry in QUASI_DB:
         # print the name of each spell as we search.
         print entry['name']
-        if entry['id'] == spell_id:
+        if entry[key].lower() == spell_id:
             # if we found a match, no need to continue
             break
     else:
@@ -73,8 +80,15 @@ def cache_retrieve_spell(spell_id):
     :return: a dictionary representing that spell, or None
     On a cache-miss, we grab the spell from the database, and add it to the cache.
     '''
+    print spell_id
+    # Determine if the user is doing a lookup by id number or spell name
+    if spell_id.isdigit():
+        query_string = "spell:id:"
+    else:
+        query_string = "spell:name:"
+
     # using redis (for this purpose) is really easy. get() returns a string or None
-    spell_json = redis_db.get("spell:id:" + spell_id) # redis returns a JSON-string
+    spell_json = redis_db.get(query_string + spell_id) # redis returns a JSON-string
     print "in cache_retrieve() for: {0}".format(spell_id)
 
     # if it was in the cache, grab the JSON string and convert to a dict
@@ -84,8 +98,9 @@ def cache_retrieve_spell(spell_id):
     # otherwise, lookup the spell in the DB
     spell_dict = db_retrieve_spell(spell_id)
     if spell_dict:
-        # if found, convert to a string and add to the cache
-        redis_db.set("spell:id:" + spell_id, json.dumps(spell_dict))
+        # if found, convert to a string and add to the cache. store names lower()'d
+        redis_db.set("spell:id:" + spell_dict['id'], json.dumps(spell_dict))
+        redis_db.set("spell:name:" + spell_dict['name'].lower().strip(), json.dumps(spell_dict))
     # Regardless if found or None, return it
     return spell_dict
 
@@ -101,7 +116,7 @@ def get_spells(spell_id):
     '''
     spell_dict = cache_retrieve_spell(spell_id)
     if not spell_dict:
-        # The beloved 404 Not Found error...
+        # The beloved 404 "Not Found" error...
         abort(404)
 
     # We'll build a dictionary out of only the keys we care about using a dictionary comprehension
@@ -118,6 +133,7 @@ if __name__ == '__main__':
         if os.path.exists('spells.csv'):
             csv_to_json('spells.csv')
         else:
-            sys.exit(1)
+            # 500 is a more appropriate error code -- "server error"
+            abort(500)
 
     app.run(debug = True)
