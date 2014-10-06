@@ -33,6 +33,9 @@ if __name__ == '__main__':
         spell = get_spell_info(sys.argv[1])
         if spell:
             print spell['name'], ": ", spell['short_description']
+            print "Duration: ", spell['duration']
+            print spell['description']
+            print spell['source'], ": ", spell['linktext']
             sys.exit(0)
         else:
             print "Spell not found."

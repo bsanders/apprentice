@@ -3,14 +3,30 @@ __author__ = 'bsanders'
 
 import os
 import sys
+import time
 import csv
 import json
 
 from flask import Flask, jsonify, abort
 
+import redis
+
+# More boilerplate, really.  In fact, we could have left this as default args!
+redis_db = redis.StrictRedis(host='localhost', port=6379, db=0)
+
 # We're creating a flask object from this script
 # don't worry, its just boilerplate
 app = Flask(__name__)
+
+# Let's centrally define the spell attributes we actually care about.
+SPELL_ATTRIBUTES = [
+    'name',
+    'duration',
+    'description',
+    'short_description',
+    'linktext',
+    'source',
+    ]
 
 def csv_to_json(filename):
     '''
@@ -35,6 +51,8 @@ def db_retrieve_spell(spell_id):
     '''
     # list of dictionaries
     QUASI_DB = json.load(open('spells.json'))
+    # simulate a long database lookup
+    time.sleep(5)
 
     # loop through the "db" until we find the spell entry that matches the id to lookup
     for entry in QUASI_DB:
@@ -49,6 +67,29 @@ def db_retrieve_spell(spell_id):
     return entry
 
 
+def cache_retrieve_spell(spell_id):
+    '''
+    :param spell_id: a string representing the database ID of the spell
+    :return: a dictionary representing that spell, or None
+    On a cache-miss, we grab the spell from the database, and add it to the cache.
+    '''
+    # using redis (for this purpose) is really easy. get() returns a string or None
+    spell_json = redis_db.get("spell:id:" + spell_id) # redis returns a JSON-string
+    print "in cache_retrieve() for: {0}".format(spell_id)
+
+    # if it was in the cache, grab the JSON string and convert to a dict
+    if spell_json:
+        return json.loads(spell_json)
+
+    # otherwise, lookup the spell in the DB
+    spell_dict = db_retrieve_spell(spell_id)
+    if spell_dict:
+        # if found, convert to a string and add to the cache
+        redis_db.set("spell:id:" + spell_id, json.dumps(spell_dict))
+    # Regardless if found or None, return it
+    return spell_dict
+
+
 # This is a 'decorator'. A decorator is an object that takes a function as an argument
 # and returns a new, modified, function
 # This decorator 'route' is provided by flask.
@@ -58,14 +99,16 @@ def get_spells(spell_id):
     :param spell_id: a string representing the database ID of the spell
     :return: An http response with that spell's name and description, or a 404 Page
     '''
-    spell_dict = db_retrieve_spell(spell_id)
+    spell_dict = cache_retrieve_spell(spell_id)
     if not spell_dict:
         # The beloved 404 Not Found error...
         abort(404)
+
+    # We'll build a dictionary out of only the keys we care about using a dictionary comprehension
+    data = {k: v for k, v in spell_dict.iteritems() if k in SPELL_ATTRIBUTES}
+
     # jsonify takes in a dictionary, and returns a JSON document bundled in an HTTP response
-    return jsonify({
-        'name': spell_dict['name'],
-        'short_description': spell_dict['short_description']})
+    return jsonify(data)
 
 
 # Since we're starting the script from the command line, we need this line, too.
