@@ -129,9 +129,9 @@ def get_spells(spell_id):
 # Since we're starting the script from the command line, we need this line, too.
 if __name__ == '__main__':
     # if the json data file doesn't exist, but the csv does, create it.
-    if not os.path.exists('spells.json'):
-        if os.path.exists('spells.csv'):
-            csv_to_json('spells.csv')
+    if not os.path.exists('../data/spells.json'):
+        if os.path.exists('../data/spells.csv'):
+            csv_to_json('../data/spells.csv')
         else:
             # 500 is a more appropriate error code -- "server error"
             abort(500)
