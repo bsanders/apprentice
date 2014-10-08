@@ -88,7 +88,7 @@ def cache_retrieve_spell(spell_id):
         query_string = "spell:name:"
 
     # using redis (for this purpose) is really easy. get() returns a string or None
-    spell_json = redis_db.get(query_string + spell_id) # redis returns a JSON-string
+    spell_json = redis_db.get(query_string + spell_id.lower().strip()) # redis returns a JSON-string
     print "in cache_retrieve() for: {0}".format(spell_id)
 
     # if it was in the cache, grab the JSON string and convert to a dict
