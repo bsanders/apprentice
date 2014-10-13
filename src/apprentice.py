@@ -11,6 +11,8 @@ from flask import Flask, jsonify, abort
 
 import redis
 
+DATA_PATH = "../data/"
+
 # More boilerplate, really.  In fact, we could have left this as default args!
 redis_db = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -50,7 +52,7 @@ def db_retrieve_spell(spell_id):
     :return: a dictionary representing that spell, or None
     '''
     # list of dictionaries
-    QUASI_DB = json.load(open('spells.json'))
+    QUASI_DB = json.load(open(DATA_PATH + 'spells.json'))
     # simulate a long database lookup
     time.sleep(5)
 
@@ -129,9 +131,9 @@ def get_spells(spell_id):
 # Since we're starting the script from the command line, we need this line, too.
 if __name__ == '__main__':
     # if the json data file doesn't exist, but the csv does, create it.
-    if not os.path.exists('../data/spells.json'):
-        if os.path.exists('../data/spells.csv'):
-            csv_to_json('../data/spells.csv')
+    if not os.path.exists(DATA_PATH + 'spells.json'):
+        if os.path.exists(DATA_PATH + 'spells.csv'):
+            csv_to_json(DATA_PATH + 'spells.csv')
         else:
             # 500 is a more appropriate error code -- "server error"
             abort(500)
