@@ -2,16 +2,14 @@
 __author__ = 'bsanders'
 
 import os
-import sys
 import time
-import csv
 import json
 
 from flask import Flask, jsonify, abort
 
 import redis
 
-DATA_PATH = "../data/"
+DATA_FILE = "../data/spells.json"
 
 # More boilerplate, really.  In fact, we could have left this as default args!
 redis_db = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -30,21 +28,6 @@ SPELL_ATTRIBUTES = [
     'source',
     ]
 
-def csv_to_json(filename):
-    '''
-    :param filename: a string representing the filename of the csv file
-    Given a csv file 'foo.csv', will generate a json formatted 'foo.json'
-    '''
-    # "context manager"  Filehandle will automatically close at the end of the scope.
-    with open(filename) as inputfile:
-        csv_dict = csv.DictReader(inputfile)
-        # dumps() converts an object to a JSON formatted string
-        json_data = json.dumps([row for row in csv_dict], indent = 4)
-    # splitext() returns a tuple with the filename without suffix, and the suffix
-    basename = os.path.splitext(filename)[0]
-    with open(basename + ".json", 'w') as outputfile:
-        outputfile.write(json_data)
-
 
 def db_retrieve_spell(spell_id):
     '''
@@ -52,7 +35,7 @@ def db_retrieve_spell(spell_id):
     :return: a dictionary representing that spell, or None
     '''
     # list of dictionaries
-    QUASI_DB = json.load(open(DATA_PATH + 'spells.json'))
+    QUASI_DB = json.load(open(DATA_FILE))
     # simulate a long database lookup
     time.sleep(5)
 
@@ -130,12 +113,9 @@ def get_spells(spell_id):
 
 # Since we're starting the script from the command line, we need this line, too.
 if __name__ == '__main__':
-    # if the json data file doesn't exist, but the csv does, create it.
-    if not os.path.exists(DATA_PATH + 'spells.json'):
-        if os.path.exists(DATA_PATH + 'spells.csv'):
-            csv_to_json(DATA_PATH + 'spells.csv')
-        else:
-            # 500 is a more appropriate error code -- "server error"
-            abort(500)
+    # if the json data file doesn't exist, error out.
+    if not os.path.exists(DATA_FILE):
+        # 500 is a more appropriate error code -- "server error"
+        abort(500)
 
     app.run(debug = True)
