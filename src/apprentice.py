@@ -49,7 +49,7 @@ def db_retrieve_spell(spell_id):
     # loop through the "db" until we find the spell entry that matches the id to lookup
     for entry in QUASI_DB:
         # print the name of each spell as we search.
-        print entry['name']
+        print "found: ", entry['name']
         if entry[key].lower() == spell_id:
             # if we found a match, no need to continue
             break
@@ -74,11 +74,14 @@ def cache_retrieve_spell(spell_id):
 
     # using redis (for this purpose) is really easy. get() returns a string or None
     spell_json = redis_db.get(query_string + spell_id.lower().strip()) # redis returns a JSON-string
-    print "in cache_retrieve() for: {0}".format(spell_id)
+    print "checking cache_retrieve() for: {0}".format(spell_id)
 
     # if it was in the cache, grab the JSON string and convert to a dict
     if spell_json:
         return json.loads(spell_json)
+    # if it was in the cache but an invalid search, return None
+    elif spell_json == '':
+        return None
 
     # otherwise, lookup the spell in the DB
     spell_dict = db_retrieve_spell(spell_id)
@@ -86,6 +89,11 @@ def cache_retrieve_spell(spell_id):
         # if found, convert to a string and add to the cache. store names lower()'d
         redis_db.set("spell:id:" + spell_dict['id'], json.dumps(spell_dict))
         redis_db.set("spell:name:" + spell_dict['name'].lower().strip(), json.dumps(spell_dict))
+    else:
+        # If we didn't find it, cache an empty string with an expiry time.
+        # At least if we search again in the next hour, we'll not find it faster next time.
+        redis_db.setex("spell:id:" + spell_id.lower().strip(), 60 * 60, '')
+        redis_db.setex("spell:name:" + spell_id.lower().strip(), 60 * 60, '')
     # Regardless if found or None, return it
     return spell_dict
 
