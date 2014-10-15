@@ -1,0 +1,5 @@
+* Add unit tests
+* Reorganize apprentice.py into a class?
+* Add a proper DB backend?
+** Queries by things other than spell name
+* WSGI
